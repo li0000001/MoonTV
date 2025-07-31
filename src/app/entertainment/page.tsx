@@ -165,7 +165,7 @@ function EntertainmentPageClient() {
                       poster={item.vod_pic}
                       episodes={item.vod_play_list?.length || 1}
                       source_name={item.source_name}
-                      type={item.vod_play_list?.length > 1 ? 'tv' : 'movie'}
+                      type={(item.vod_play_list?.length || 0) > 1 ? 'tv' : 'movie'}
                     />
                   </div>
                 ))}
