@@ -6,7 +6,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { searchByKeyword } from '@/lib/api.client';
 import { getConfig } from '@/lib/config';
-import { SearchResultItem } from '@/lib/types';
+import { SearchResult } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import PageLayout from '@/components/PageLayout';
@@ -49,7 +49,6 @@ function EntertainmentPageClient() {
     }
 
     try {
-      // We can use an empty keyword to fetch the latest videos from the source
       const data = await searchByKeyword({ keyword: '', source: category, page });
       if (data) {
         setVideos(prev => (page === 1 ? data : [...prev, ...data]));
@@ -147,15 +146,15 @@ function EntertainmentPageClient() {
             {loading
               ? skeletonData.map((index) => <DoubanCardSkeleton key={index} />)
               : videos.map((item, index) => (
-                  <div key={`${item.vod_id}-${index}`} className='w-full'>
+                  <div key={`${item.id}-${index}`} className='w-full'>
                     <VideoCard
-                      id={item.vod_id}
+                      id={item.id}
                       source={item.source}
-                      title={item.vod_name}
-                      poster={item.vod_pic}
-                      episodes={item.vod_play_list?.length || 1}
+                      title={item.title}
+                      poster={item.poster}
+                      episodes={item.episodes.length || 1}
                       source_name={item.source_name}
-                      type={item.vod_play_list?.length > 1 ? 'tv' : 'movie'}
+                      type={item.episodes.length > 1 ? 'tv' : 'movie'}
                     />
                   </div>
                 ))}
