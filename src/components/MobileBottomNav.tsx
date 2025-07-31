@@ -40,6 +40,11 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
       label: '综艺',
       href: '/douban?type=show',
     },
+    {
+      icon: Gamepad2,
+      label: '娱乐',
+      href: '/douban?type=entertainment',
+    },
   ];
 
   const isActive = (href: string) => {
