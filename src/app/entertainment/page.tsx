@@ -6,16 +6,25 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { searchByKeyword } from '@/lib/api.client';
 import { getConfig } from '@/lib/config';
-import { SearchResult } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
 
+// Define the correct type for the items returned by the search API
+interface ApiSearchResult {
+  vod_id: string;
+  vod_name: string;
+  vod_pic: string;
+  vod_play_list?: any[];
+  source: string;
+  source_name: string;
+}
+
 function EntertainmentPageClient() {
   const [categories, setCategories] = useState<{ key: string; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [videos, setVideos] = useState<SearchResult[]>([]);
+  const [videos, setVideos] = useState<ApiSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -26,7 +35,8 @@ function EntertainmentPageClient() {
   useEffect(() => {
     const fetchCategories = async () => {
       const config = await getConfig();
-      const adultSites = Object.entries(config.api_site)
+      // Correctly access the API sites from the config object
+      const adultSites = Object.entries(config.SiteConfig.ApiSites)
         .filter(([, site]) => site.adult)
         .map(([key, site]) => ({ key, name: site.name }));
       setCategories(adultSites);
@@ -146,15 +156,15 @@ function EntertainmentPageClient() {
             {loading
               ? skeletonData.map((index) => <DoubanCardSkeleton key={index} />)
               : videos.map((item, index) => (
-                  <div key={`${item.id}-${index}`} className='w-full'>
+                  <div key={`${item.vod_id}-${index}`} className='w-full'>
                     <VideoCard
-                      id={item.id}
+                      id={item.vod_id}
                       source={item.source}
-                      title={item.title}
-                      poster={item.poster}
-                      episodes={item.episodes.length || 1}
+                      title={item.vod_name}
+                      poster={item.vod_pic}
+                      episodes={item.vod_play_list?.length || 1}
                       source_name={item.source_name}
-                      type={item.episodes.length > 1 ? 'tv' : 'movie'}
+                      type={item.vod_play_list?.length > 1 ? 'tv' : 'movie'}
                     />
                   </div>
                 ))}
