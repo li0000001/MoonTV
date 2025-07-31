@@ -1,6 +1,6 @@
 'use client';
 
-import { Clover, Film, Home, Menu, Search, Tv, TvMinimalPlay } from 'lucide-react';
+import { Clover, Film, Gamepad, Home, Menu, Search, Tv, TvMinimalPlay } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -144,7 +144,7 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
       href: '/douban?type=show',
     },
     {
-      icon: Gamepad2,
+      icon: Gamepad,
       label: '娱乐',
       href: '/douban?type=entertainment',
     },
