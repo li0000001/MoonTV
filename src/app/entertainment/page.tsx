@@ -158,6 +158,7 @@ function EntertainmentPageClient() {
               : videos.map((item, index) => (
                   <div key={`${item.vod_id}-${index}`} className='w-full'>
                     <VideoCard
+                      from='search'
                       id={item.vod_id}
                       source={item.source}
                       title={item.vod_name}
