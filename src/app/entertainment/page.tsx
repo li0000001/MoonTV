@@ -15,7 +15,7 @@ import VideoCard from '@/components/VideoCard';
 function EntertainmentPageClient() {
   const [categories, setCategories] = useState<{ key: string; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [videos, setVideos] = useState<SearchResultItem[]>([]);
+  const [videos, setVideos] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
