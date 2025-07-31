@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { searchByKeyword } from '@/lib/api.client';
 import { getConfig } from '@/lib/config';
+import { SearchResult } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import PageLayout from '@/components/PageLayout';
@@ -19,6 +20,18 @@ interface ApiSearchResult {
   vod_play_list?: any[];
   source: string;
   source_name: string;
+}
+
+// 创建一个映射函数，将 SearchResult 转换为 ApiSearchResult
+function mapSearchResultToApiSearchResult(item: SearchResult): ApiSearchResult {
+  return {
+    vod_id: item.id,
+    vod_name: item.title,
+    vod_pic: item.poster,
+    vod_play_list: item.episodes?.map(episode => ({ episode })) || [],
+    source: item.source,
+    source_name: item.source_name,
+  };
 }
 
 function EntertainmentPageClient() {
@@ -61,8 +74,10 @@ function EntertainmentPageClient() {
     try {
       const data = await searchByKeyword({ keyword: '', source: category, page });
       if (data) {
-        setVideos(prev => (page === 1 ? data : [...prev, ...data]));
-        setHasMore(data.length > 0);
+        // 将 SearchResult[] 映射为 ApiSearchResult[]
+        const mappedData = data.map(mapSearchResultToApiSearchResult);
+        setVideos(prev => (page === 1 ? mappedData : [...prev, ...mappedData]));
+        setHasMore(mappedData.length > 0);
       }
     } catch (error) {
       console.error(error);
