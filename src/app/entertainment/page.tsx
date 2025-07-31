@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getConfig } from '@/lib/config';
-import { searchByKeyword } from '@/lib/search';
-import { mapSearchResultToApiSearchResult } from '@/lib/mappers';
+import { getConfig } from '../../lib/config';
+import { searchByKeyword } from '../../lib/search';
+import { mapSearchResultToApiSearchResult } from '../../lib/mappers';
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
