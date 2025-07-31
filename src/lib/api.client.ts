@@ -1,4 +1,4 @@
-import { DetailData, SearchResultItem } from './types';
+import { SearchResult } from './types';
 
 export async function searchByKeyword({
   keyword,
@@ -8,7 +8,7 @@ export async function searchByKeyword({
   keyword: string;
   source: string | null;
   page?: number;
-}): Promise<SearchResultItem[]> {
+}): Promise<SearchResult[]> {
   const params = new URLSearchParams();
   if (source) {
     params.set('source', source);
@@ -31,7 +31,8 @@ export async function getDetail({
 }: {
   source: string;
   id: string;
-}): Promise<DetailData | null> {
+  // 根据 api/detail/route.ts 中的实现，这里应该返回 any 类型
+}): Promise<any | null> {
   const params = new URLSearchParams();
   params.set('source', source);
   params.set('id', id);
