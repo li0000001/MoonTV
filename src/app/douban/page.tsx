@@ -37,6 +37,7 @@ function DoubanPageClient() {
     if (type === 'tv') return 'tv';
     if (type === 'show') return 'show';
     if (type === 'duanju') return 'duanju';
+    if (type === 'entertainment') return 'entertainment'; // 添加 entertainment 类型支持
     return '全部';
   });
 
@@ -71,6 +72,10 @@ function DoubanPageClient() {
     } else if (type === 'duanju') {
       setPrimarySelection('');
       setSecondarySelection('duanju');
+    } else if (type === 'entertainment') {
+      // 对于 entertainment 类型，我们不需要选择器，直接跳转到专门的页面
+      window.location.href = '/entertainment';
+      return;
     } else {
       setPrimarySelection('');
       setSecondarySelection('全部');
@@ -258,6 +263,8 @@ function DoubanPageClient() {
       ? '电视剧'
       : type === 'show'
       ? '综艺'
+      : type === 'entertainment'
+      ? '娱乐'
       : '短剧';
   };
 
