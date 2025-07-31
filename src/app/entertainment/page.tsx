@@ -37,8 +37,8 @@ function EntertainmentPageClient() {
       const config = await getConfig();
       // Correctly access the API sites from the config object
       const adultSites = config.SourceConfig
-        .filter((site) => site.adult)
-        .map((site) => ({ key: site.key, name: site.name }));
+        .filter((site: any) => site.adult)
+        .map((site: any) => ({ key: site.key, name: site.name }));
       setCategories(adultSites);
       if (adultSites.length > 0) {
         setSelectedCategory(adultSites[0].key);
