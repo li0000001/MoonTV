@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getConfig } from '@/lib/config';
 import { searchByKeyword } from '@/lib/search';
@@ -117,8 +119,8 @@ function EntertainmentPageClient() {
               key={cat.key}
               onClick={() => setApiCategory(cat.key)}
               className={`px-4 py-2 mx-1 rounded-lg font-semibold transition-colors duration-200 ${apiCategory === cat.key
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
                 }`}
             >
               {cat.name}
@@ -159,8 +161,8 @@ function EntertainmentPageClient() {
                   key={category.key}
                   onClick={() => setSelectedCategory(category.key)}
                   className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${selectedCategory === category.key
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
                     }`}>
                   {category.name}
                 </button>
