@@ -43,24 +43,44 @@ function EntertainmentPageClient() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // 直接使用指定的8个adult资源站点
-        const specifiedAdultSites = [
-          { key: "ckzy", name: "CK资源" },
-          { key: "jkun", name: "jkun资源" },
-          { key: "bwzy", name: "百万资源" },
-          { key: "souav", name: "souav资源" },
-          { key: "r155", name: "155资源" },
-          { key: "lsb", name: "lsb资源" },
-          { key: "huangcang", name: "黄色仓库" },
-          { key: "yutu", name: "玉兔资源" }
+        const config = await getConfig();
+        console.log('Config loaded:', config);
+
+        // 获取指定的8个adult资源站点
+        const specifiedAdultSiteKeys = [
+          "ckzy", "jkun", "bwzy", "souav",
+          "r155", "lsb", "huangcang", "yutu"
         ];
 
-        console.log('Specified adult sites:', specifiedAdultSites);
-        setCategories(specifiedAdultSites);
+        const adultSites = config.SourceConfig
+          .filter((site: any) =>
+            specifiedAdultSiteKeys.includes(site.key) &&
+            (site.adult || site.key === "ckzy" || site.key === "jkun" ||
+              site.key === "bwzy" || site.key === "souav" ||
+              site.key === "r155" || site.key === "lsb" ||
+              site.key === "huangcang" || site.key === "yutu")
+          )
+          .map((site: any) => ({ key: site.key, name: site.name }));
 
-        if (specifiedAdultSites.length > 0) {
-          setSelectedCategory(specifiedAdultSites[0].key); // 确保 selectedCategory 被正确初始化
-          console.log('Selected Category:', specifiedAdultSites[0].key); // 打印选中的类别
+        console.log('Adult sites found:', adultSites);
+        setCategories(adultSites);
+
+        if (adultSites.length > 0) {
+          setSelectedCategory(adultSites[0].key); // 确保 selectedCategory 被正确初始化
+          console.log('Selected Category:', adultSites[0].key); // 打印选中的类别
+        } else {
+          console.log('No adult sites found in config, using all sites instead');
+          // 如果没有找到adult站点，则使用所有站点
+          const allSites = config.SourceConfig
+            .filter((site: any) => !site.disabled)
+            .map((site: any) => ({ key: site.key, name: site.name }));
+          console.log('All sites found:', allSites);
+          setCategories(allSites);
+
+          if (allSites.length > 0) {
+            setSelectedCategory(allSites[0].key);
+            console.log('Selected Category (from all sites):', allSites[0].key);
+          }
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
