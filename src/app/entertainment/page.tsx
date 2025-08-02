@@ -112,25 +112,11 @@ function EntertainmentPageClient() {
     }
 
     try {
-      // 尝试使用不同的关键词搜索，增加获取内容的概率
-      const keywords = ['', '最新', '热门', '推荐', '电影', '视频'];
-      let data = null;
-
-      for (const keyword of keywords) {
-        try {
-          console.log(`Trying with keyword: "${keyword}"`);
-          data = await searchByKeyword({ keyword, source: category, page });
-          console.log(`Search result with keyword "${keyword}":`, data);
-
-          if (data && Array.isArray(data) && data.length > 0) {
-            console.log(`Found ${data.length} results with keyword "${keyword}"`);
-            break;
-          }
-        } catch (keywordError) {
-          console.warn(`Error with keyword "${keyword}":`, keywordError);
-          // 继续尝试下一个关键词
-        }
-      }
+      // 使用空关键词搜索，获取所有内容
+      const keyword = '';
+      console.log(`Searching with keyword: "${keyword}"`);
+      const data = await searchByKeyword({ keyword, source: category, page });
+      console.log(`Search result:`, data);
 
       if (data && Array.isArray(data) && data.length > 0) {
         // 将 SearchResult[] 映射为 ApiSearchResult[]
@@ -141,7 +127,7 @@ function EntertainmentPageClient() {
         setHasMore(mappedData.length > 0);
         console.log(`Loaded ${mappedData.length} videos`);
       } else {
-        console.log('No data found with any keyword');
+        console.log('No data found');
         setHasMore(false);
       }
     } catch (error) {
