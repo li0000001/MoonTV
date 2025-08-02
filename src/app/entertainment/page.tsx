@@ -1,13 +1,33 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getConfig } from '../../lib/config';
-import { searchByKeyword } from '../../lib/search';
-import { mapSearchResultToApiSearchResult } from '../../lib/mappers';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { getConfig } from '@/lib/config';
+import { searchByKeyword } from '@/lib/api.client';
 import PageLayout from '@/components/PageLayout';
 import VideoCard from '@/components/VideoCard';
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
-import { usePageTitle } from '@/hooks/usePageTitle';
+
+// Define the correct type for the items returned by the search API
+interface ApiSearchResult {
+  vod_id: string;
+  vod_name: string;
+  vod_pic: string;
+  vod_play_list?: any[];
+  source: string;
+  source_name: string;
+}
+
+// 创建一个映射函数，将 SearchResult 转换为 ApiSearchResult
+function mapSearchResultToApiSearchResult(item: any) {
+  return {
+    vod_id: item.id,
+    vod_name: item.title,
+    vod_pic: item.poster,
+    vod_play_list: item.episodes?.map((episode: string) => ({ episode })) || [],
+    source: item.source,
+    source_name: item.source_name,
+  };
+}
 
 function EntertainmentPageClient() {
   const [categories, setCategories] = useState<{ key: string; name: string }[]>([]);
@@ -22,15 +42,37 @@ function EntertainmentPageClient() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const config = await getConfig();
-      // Correctly access the API sites from the config object
-      const adultSites = config.SourceConfig
-        .filter((site: any) => site.adult)
-        .map((site: any) => ({ key: site.key, name: site.name }));
-      setCategories(adultSites);
-      if (adultSites.length > 0) {
-        setSelectedCategory(adultSites[0].key); // 确保 selectedCategory 被正确初始化
-        console.log('Selected Category:', adultSites[0].key); // 打印选中的类别
+      try {
+        const config = await getConfig();
+        console.log('Config loaded:', config);
+
+        // Correctly access the API sites from the config object
+        const adultSites = config.SourceConfig
+          .filter((site: any) => site.adult)
+          .map((site: any) => ({ key: site.key, name: site.name }));
+
+        console.log('Adult sites found:', adultSites);
+        setCategories(adultSites);
+
+        if (adultSites.length > 0) {
+          setSelectedCategory(adultSites[0].key); // 确保 selectedCategory 被正确初始化
+          console.log('Selected Category:', adultSites[0].key); // 打印选中的类别
+        } else {
+          console.log('No adult sites found in config, using all sites instead');
+          // 如果没有找到adult站点，则使用所有站点
+          const allSites = config.SourceConfig
+            .filter((site: any) => !site.disabled)
+            .map((site: any) => ({ key: site.key, name: site.name }));
+          console.log('All sites found:', allSites);
+          setCategories(allSites);
+
+          if (allSites.length > 0) {
+            setSelectedCategory(allSites[0].key);
+            console.log('Selected Category (from all sites):', allSites[0].key);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
       }
     };
     fetchCategories();
@@ -44,7 +86,13 @@ function EntertainmentPageClient() {
   }, [categories, selectedCategory]);
 
   const loadVideos = useCallback(async (category: string, page: number) => {
-    if (!category) return;
+    if (!category) {
+      console.log('No category provided for loading videos');
+      return;
+    }
+
+    console.log(`Loading videos for category: ${category}, page: ${page}`);
+
     if (page === 1) {
       setLoading(true);
       setVideos([]);
@@ -53,16 +101,45 @@ function EntertainmentPageClient() {
     }
 
     try {
+      // 尝试使用空关键词搜索，获取所有内容
       const data = await searchByKeyword({ keyword: '', source: category, page });
-      console.log('Search Result:', data); // 打印搜索结果
-      if (data) {
+      console.log('Search Result:', data);
+
+      if (data && Array.isArray(data) && data.length > 0) {
         // 将 SearchResult[] 映射为 ApiSearchResult[]
         const mappedData = data.map(mapSearchResultToApiSearchResult);
-        setVideos(prev => (page === 1 ? mappedData : [...prev, ...mappedData]));
+        console.log('Mapped data:', mappedData);
+
+        setVideos((prev: ApiSearchResult[]) => (page === 1 ? mappedData : [...prev, ...mappedData]));
         setHasMore(mappedData.length > 0);
+        console.log(`Loaded ${mappedData.length} videos`);
+      } else if (data && Array.isArray(data) && data.length === 0) {
+        // 如果没有数据，尝试使用通用关键词搜索
+        console.log('No data with empty keyword, trying with general keyword');
+        try {
+          const generalData = await searchByKeyword({ keyword: '最新', source: category, page });
+          console.log('General search result:', generalData);
+
+          if (generalData && Array.isArray(generalData) && generalData.length > 0) {
+            const generalMappedData = generalData.map(mapSearchResultToApiSearchResult);
+            setVideos((prev: ApiSearchResult[]) => (page === 1 ? generalMappedData : [...prev, ...generalMappedData]));
+            setHasMore(generalMappedData.length > 0);
+            console.log(`Loaded ${generalMappedData.length} videos with general keyword`);
+          } else {
+            console.log('No data found with general keyword either');
+            setHasMore(false);
+          }
+        } catch (generalError) {
+          console.error('Error with general keyword search:', generalError);
+          setHasMore(false);
+        }
+      } else {
+        console.log('No data returned or data is not an array');
+        setHasMore(false);
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error loading videos:', error);
+      setHasMore(false);
     } finally {
       if (page === 1) {
         setLoading(false);
@@ -74,74 +151,57 @@ function EntertainmentPageClient() {
 
   useEffect(() => {
     if (selectedCategory) {
+      console.log('Selected category changed, loading videos:', selectedCategory);
       setCurrentPage(1);
       loadVideos(selectedCategory, 1);
+    } else {
+      console.log('No selected category, skipping video load');
     }
   }, [selectedCategory, loadVideos]);
 
-  const apiNames = [
-    { name: '首页', path: '/' },
-    { name: '搜索', path: '/search' },
-    { name: '电影', path: '/movie' },
-    { name: '剧集', path: '/tv' },
-    { name: '短剧', path: '/short' },
-    { name: '综艺', path: '/show' },
-    { name: '娱乐', path: '/entertainment' },
-  ];
-
-  // 新增：API分类列表
-  const apiCategories = [
-    { key: 'home', name: '首页', source: 'home' },
-    { key: 'search', name: '搜索', source: 'search' },
-    { key: 'movie', name: '电影', source: 'movie' },
-    { key: 'tv', name: '剧集', source: 'tv' },
-    { key: 'short', name: '短剧', source: 'short' },
-    { key: 'show', name: '综艺', source: 'show' },
-    { key: 'entertainment', name: '娱乐', source: 'entertainment' },
-  ];
-  // 新增：顶部分类选择
-  const [apiCategory, setApiCategory] = useState(apiCategories[0].key);
-
-  // 新增：根据apiCategory切换source
   useEffect(() => {
-    // 这里假设 source 与 key 一致
-    setSelectedCategory(apiCategory);
-  }, [apiCategory]);
+    if (currentPage > 1) {
+      loadVideos(selectedCategory, currentPage);
+    }
+  }, [currentPage, selectedCategory, loadVideos]);
+
+  useEffect(() => {
+    if (!hasMore || isLoadingMore || loading) {
+      return;
+    }
+
+    if (!loadingRef.current) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          setCurrentPage((prev: number) => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(loadingRef.current);
+    observerRef.current = observer;
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [hasMore, isLoadingMore, loading]);
+
+  const getPageTitle = () => '娱乐';
+
+  const getActivePath = () => '/douban?type=entertainment';
+
+  const skeletonData = Array.from({ length: 25 }, (_, index) => index);
 
   return (
     <PageLayout activePath={getActivePath()}>
       <div className='px-4 sm:px-10 py-4 sm:py-8 overflow-visible'>
-        {/* 新增：顶部分类栏 */}
-        <div className="mb-4">
-          <span className="font-semibold text-gray-700 mr-2">分类：</span>
-          {apiCategories.map(cat => (
-            <button
-              key={cat.key}
-              onClick={() => setApiCategory(cat.key)}
-              className={`px-4 py-2 mx-1 rounded-lg font-semibold transition-colors duration-200 ${apiCategory === cat.key
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
-                }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-
-        {/* 新增：导航栏 */}
-        <nav className="mb-6 sm:mb-8">
-          <ul className="flex space-x-4">
-            {apiNames.map((api) => (
-              <li key={api.name}>
-                <a href={api.path} className="text-gray-600 hover:text-green-500">
-                  {api.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* 原有内容保持不变 */}
         <div className='mb-6 sm:mb-8 space-y-4 sm:space-y-6'>
           {/* 页面标题和分类选择器 */}
           <div>
@@ -154,77 +214,75 @@ function EntertainmentPageClient() {
           </div>
 
           {/* 分类选择器 */}
-          <div className='bg-white/60 dark:bg-gray-800/40 rounded-2xl p-4 sm:p-6 border border-gray-200/30 dark:border-gray-700/30 backdrop-blur-sm'>
-            <div className="flex flex-wrap gap-4">
-              {categories.map(category => (
-                <button
-                  key={category.key}
-                  onClick={() => setSelectedCategory(category.key)}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${selectedCategory === category.key
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
-                    }`}>
-                  {category.name}
-                </button>
-              ))}
-            </div>
+          <div className='flex flex-wrap gap-2 sm:gap-3'>
+            {categories.map((category) => (
+              <button
+                key={category.key}
+                onClick={() => setSelectedCategory(category.key)}
+                className={`px-3 py-1 sm:px-4 sm:py-2 rounded-full text-sm sm:text-base font-medium transition-colors duration-200 ${selectedCategory === category.key
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                  }`}
+              >
+                {category.name}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* 内容展示区域 */}
-        <div className='max-w-[95%] mx-auto mt-8 overflow-visible'>
-          {/* 内容网格 */}
-          <div className='grid grid-cols-3 gap-x-2 gap-y-12 px-0 sm:px-2 sm:grid-cols-[repeat(auto-fit,minmax(160px,1fr))] sm:gap-x-8 sm:gap-y-20'>
-            {loading
-              ? skeletonData.map((index) => <DoubanCardSkeleton key={index} />)
-              : videos.map((item, index) => (
-                <div key={`${item.vod_id}-${index}`} className='w-full'>
-                  <VideoCard
-                    from='search'
-                    id={item.vod_id}
-                    source={item.source}
-                    title={item.vod_name}
-                    poster={item.vod_pic}
-                    episodes={item.vod_play_list?.length || 1}
-                    source_name={item.source_name}
-                    type={(item.vod_play_list?.length || 0) > 1 ? 'tv' : 'movie'}
-                  />
-                </div>
-              ))}
-          </div>
-
-          {/* 加载更多指示器 */}
-          {hasMore && !loading && (
-            <div
-              ref={(el) => {
-                if (el && el.offsetParent !== null) {
-                  (loadingRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-                }
-              }}
-              className='flex justify-center mt-12 py-8'
-            >
-              {isLoadingMore && (
-                <div className='flex items-center gap-2'>
-                  <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-green-500'></div>
-                  <span className='text-gray-600'>加载中...</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 没有更多数据提示 */}
-          {!hasMore && videos.length > 0 && (
-            <div className='text-center text-gray-500 py-8'>已加载全部内容</div>
-          )}
-
-          {/* 空状态 */}
-          {!loading && videos.length === 0 && (
-            <div className='text-center text-gray-500 py-8'>暂无相关内容</div>
-          )}
+        {/* 视频卡片网格 */}
+        <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-14 sm:gap-y-20 px-0 sm:px-2 sm:grid-cols-[repeat(auto-fill,_minmax(11rem,_1fr))] sm:gap-x-8'>
+          {loading
+            ? skeletonData.map((index) => <DoubanCardSkeleton key={index} />)
+            : videos.map((video: ApiSearchResult) => (
+              <VideoCard
+                id={video.vod_id}
+                title={video.vod_name}
+                poster={video.vod_pic}
+                source={video.source}
+                source_name={video.source_name}
+                from='search'
+                key={`${video.vod_id}-${video.source}`}
+              />
+            ))}
         </div>
+
+        {/* 加载更多指示器 */}
+        {isLoadingMore && (
+          <div className='flex justify-center py-6'>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-green-500'></div>
+          </div>
+        )}
+
+        {/* 无更多内容提示 */}
+        {!hasMore && !loading && !isLoadingMore && videos.length > 0 && (
+          <div className='text-center py-6 text-gray-500 dark:text-gray-400'>
+            没有更多内容了
+          </div>
+        )}
+
+        {/* 空状态提示 */}
+        {!loading && !isLoadingMore && videos.length === 0 && (
+          <div className='text-center py-12 text-gray-500 dark:text-gray-400'>
+            {categories.length === 0
+              ? '未找到资源分类，请检查配置'
+              : selectedCategory
+                ? `当前分类 "${selectedCategory}" 下暂无内容，请尝试其他分类`
+                : '请选择一个分类以浏览内容'}
+          </div>
+        )}
+
+        {/* 用于无限滚动的观察目标元素 */}
+        <div ref={loadingRef} className='h-1' />
       </div>
     </PageLayout>
   );
 }
 
-export default EntertainmentPageClient;
+export default function EntertainmentPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EntertainmentPageClient />
+    </Suspense>
+  );
+}
