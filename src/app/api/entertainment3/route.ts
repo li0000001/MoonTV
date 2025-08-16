@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const categoryId = searchParams.get('t') || ''; // category id
   const page = pageStart / pageLimit + 1;
 
-  const apiUrl = `https://apiyutu.com/api.php/providedao/vod/?ac=list&pg=${page}&pagesize=${pageLimit}&t=${categoryId}`;
+  const apiUrl = `https://apiyutu.com/api.php/providedao/vod/?ac=videolist&pg=${page}&pagesize=${pageLimit}&t=${categoryId}`;
 
   try {
     const response = await fetch(apiUrl);

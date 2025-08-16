@@ -86,7 +86,7 @@
       "name": "小猫咪资源"
     },
     "entertainment": {
-      "api": "https://api.bwzyz.com/api.php/provide/vod/at/json/",
+      "api": "https://api.bwzyz.com/api.php/provide/vod/",
       "name": "百万资源网"
     },
     "entertainment1": {
@@ -94,7 +94,7 @@
       "name": "搜AV资源"
     },
     "entertainment2": {
-      "api": "https://hsckzy888.com/api.php/provide/vod/at/json/",
+      "api": "https://hsckzy888.com/api.php/provide/vod/",
       "name": "HSCK资源"
     },
     "entertainment3": {
